@@ -73,20 +73,49 @@
     position: absolute; right: 7px; top: 50%; translate: 0 -50%; width: 34px; height: 34px;
     border: 0; border-radius: 50%; background: var(--fondo); color: var(--tenue); cursor: pointer; font-size: 20px;
   }
+  /* Categorías: en el celular, botón que despliega la lista vertical;
+     en pantallas anchas, todas a la vista. */
+  .cat-boton {
+    display: flex; align-items: center; gap: 10px; width: 100%; max-width: 720px; margin: 10px auto 0;
+    height: 44px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--linea);
+    background: var(--papel); cursor: pointer; font-size: 15px; box-shadow: var(--sombra);
+  }
+  .cat-boton .rotulo { color: var(--tenue); }
+  .cat-boton .actual { font-weight: 600; flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cat-boton .flecha { color: var(--acento); transition: rotate .2s; }
+  .cat-boton[aria-expanded="true"] { border-color: var(--naranja); }
+  .cat-boton[aria-expanded="true"] .flecha { rotate: 180deg; }
   .chips {
-    display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 2px; max-width: 1100px; margin: 0 auto;
-    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    display: none; flex-direction: column; max-width: 720px; margin: 8px auto 0; background: var(--papel);
+    border: 1px solid var(--linea); border-radius: 18px; box-shadow: 0 12px 30px rgba(60, 30, 10, .16);
+    max-height: 62dvh; overflow-y: auto; overscroll-behavior: contain;
   }
-  .chips::-webkit-scrollbar { display: none; }
-  @media (min-width: 900px) { .chips { flex-wrap: wrap; justify-content: center; overflow: visible; } }
+  .chips.abierta { display: flex; }
   .chip {
-    flex: none; border: 1.5px solid var(--linea); background: var(--papel); border-radius: 999px;
-    padding: 7px 14px; font-size: 13.5px; cursor: pointer; white-space: nowrap; transition: border-color .15s;
+    display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left;
+    border: 0; border-bottom: 1px solid var(--linea); background: transparent; padding: 14px 18px;
+    font-size: 15.5px; cursor: pointer;
   }
-  .chip:hover { border-color: var(--ambar); }
-  .chip span { color: var(--tenue); font-size: 12px; margin-left: 4px; }
-  .chip[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
-  .chip[aria-pressed="true"] span { color: var(--ambar); }
+  .chip:last-child { border-bottom: 0; }
+  .chip span { color: var(--tenue); font-size: 13px; background: var(--fondo); border-radius: 999px; padding: 2px 9px; }
+  .chip[aria-pressed="true"] { background: #fff3e2; color: var(--acento); font-weight: 700; }
+  .chip[aria-pressed="true"] span { background: var(--naranja); color: #fff; }
+  @media (min-width: 900px) {
+    .cat-boton { display: none; }
+    .chips {
+      display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 1100px;
+      margin: 12px auto 0; background: none; border: 0; box-shadow: none; max-height: none; overflow: visible;
+    }
+    .chip {
+      width: auto; border: 1.5px solid var(--linea); border-radius: 999px; background: var(--papel);
+      padding: 7px 14px; font-size: 13.5px; gap: 6px;
+    }
+    .chip:last-child { border-bottom: 1.5px solid var(--linea); }
+    .chip:hover { border-color: var(--ambar); }
+    .chip span { background: none; padding: 0; font-size: 12px; }
+    .chip[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; font-weight: 400; }
+    .chip[aria-pressed="true"] span { background: none; color: var(--ambar); }
+  }
 
   /* Grilla de productos */
   main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 40px; }
@@ -187,6 +216,11 @@
     <input id="q" type="search" placeholder="Buscar: anzuelo, reel, linterna, marca…" autocomplete="off" enterkeyhint="search" aria-label="Buscar productos">
     <button class="limpiar" id="limpiar" aria-label="Borrar búsqueda" hidden>×</button>
   </div>
+  <button class="cat-boton" id="cat-boton" type="button" aria-expanded="false" aria-controls="chips">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    <span class="rotulo">Categorías:</span><span class="actual" id="cat-actual">Todo</span>
+    <svg class="flecha" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+  </button>
   <nav class="chips" id="chips" aria-label="Categorías"></nav>
 </div>
 
@@ -272,8 +306,12 @@
         b.onclick = () => {
           estado.categoria = valor;
           estado.mostrados = POR_TANDA;
+          $("cat-actual").textContent = texto;
+          cerrarCategorias();
           dibujarChips(); actualizar();
-          b.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+          // Volver al principio de la lista de productos.
+          const arriba = $("contador").getBoundingClientRect().top + scrollY - $("barra").offsetHeight - 8;
+          if (scrollY > arriba) scrollTo({ top: arriba, behavior: "smooth" });
         };
         chips.append(b);
       });
@@ -352,6 +390,20 @@
         f.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })));
     }
   }
+
+  function cerrarCategorias() {
+    $("chips").classList.remove("abierta");
+    $("cat-boton").setAttribute("aria-expanded", "false");
+  }
+  $("cat-boton").onclick = () => {
+    const abrir = !$("chips").classList.contains("abierta");
+    $("chips").classList.toggle("abierta", abrir);
+    $("cat-boton").setAttribute("aria-expanded", String(abrir));
+  };
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#chips, #cat-boton")) cerrarCategorias();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarCategorias(); });
 
   // Eventos
   let espera;
