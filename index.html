@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>El Bote del Pescador · Catálogo</title>
+<meta name="description" content="Catálogo de pesca y camping de El Bote del Pescador. Consultá precio y disponibilidad por WhatsApp.">
+<meta name="theme-color" content="#f4eee3">
+<link rel="icon" href="logo.png">
+<!--
+  Catálogo para clientes de El Bote del Pescador. Lo genera el ERP
+  (services/catalogo_publico.py): esta página lee datos.json. No lleva
+  precios ni stock a propósito.
+-->
+<style>
+  :root {
+    --fondo: #f4eee3;
+    --papel: #fffdf8;
+    --tinta: #1d1b18;
+    --tenue: #6b645a;
+    --linea: #e3dacb;
+    --acento: #b5452c;
+    --acento-osc: #8f3320;
+    --wsp: #1f8f4e;
+    --sombra: 0 1px 2px rgba(40, 30, 20, .06), 0 4px 14px rgba(40, 30, 20, .06);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--fondo); color: var(--tinta);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  button { font: inherit; color: inherit; }
+  img { display: block; }
+
+  /* Encabezado */
+  .cabecera { text-align: center; padding: 18px 16px 6px; }
+  .cabecera img { width: 150px; height: auto; margin: 0 auto; mix-blend-mode: multiply; }
+  .cabecera p { margin: 6px 0 0; color: var(--tenue); font-size: 13.5px; }
+  .cabecera strong { color: var(--tinta); font-weight: 600; }
+
+  /* Buscador y categorías (quedan fijos arriba al bajar) */
+  .barra {
+    position: sticky; top: 0; z-index: 5; background: var(--fondo);
+    padding: 10px 16px 8px; border-bottom: 1px solid transparent; transition: border-color .2s, box-shadow .2s;
+  }
+  .barra.pegada { border-bottom-color: var(--linea); box-shadow: 0 4px 12px rgba(40, 30, 20, .05); }
+  .buscador { position: relative; max-width: 720px; margin: 0 auto; }
+  .buscador svg { position: absolute; left: 13px; top: 50%; translate: 0 -50%; color: var(--tenue); pointer-events: none; }
+  .buscador input {
+    width: 100%; height: 46px; padding: 0 42px 0 40px; border-radius: 12px;
+    border: 1px solid var(--linea); background: var(--papel); color: var(--tinta);
+    font: inherit; font-size: 16px; outline: none;
+  }
+  .buscador input:focus { border-color: var(--acento); box-shadow: 0 0 0 3px rgba(181, 69, 44, .15); }
+  .buscador .limpiar {
+    position: absolute; right: 6px; top: 50%; translate: 0 -50%; width: 34px; height: 34px;
+    border: 0; border-radius: 50%; background: transparent; color: var(--tenue); cursor: pointer; font-size: 20px;
+  }
+  .chips {
+    display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; max-width: 1100px; margin: 0 auto;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  @media (min-width: 900px) { .chips { flex-wrap: wrap; justify-content: center; overflow: visible; } }
+  .chip {
+    flex: none; border: 1px solid var(--linea); background: var(--papel); border-radius: 999px;
+    padding: 7px 13px; font-size: 13.5px; cursor: pointer; white-space: nowrap;
+  }
+  .chip span { color: var(--tenue); font-size: 12px; margin-left: 3px; }
+  .chip[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--papel); }
+  .chip[aria-pressed="true"] span { color: #cfc6b8; }
+
+  /* Grilla de productos */
+  main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 110px; }
+  .contador { color: var(--tenue); font-size: 13px; margin: 6px 2px 10px; }
+  .grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0; }
+  @media (min-width: 640px) { .grilla { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } }
+  @media (min-width: 960px) { .grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .tarjeta {
+    width: 100%; height: 100%; text-align: left; padding: 0; border: 1px solid var(--linea); border-radius: 14px;
+    background: var(--papel); overflow: hidden; cursor: pointer; box-shadow: var(--sombra);
+    display: flex; flex-direction: column; transition: transform .15s;
+  }
+  .tarjeta:active { transform: scale(.98); }
+  .foto { aspect-ratio: 1; background: #fff; display: flex; align-items: center; justify-content: center; }
+  .foto img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
+  .sin-foto {
+    width: 100%; height: 100%; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center;
+    background: repeating-linear-gradient(45deg, #faf6ee, #faf6ee 10px, #f4eee3 10px, #f4eee3 20px);
+    color: #a39a8c; font-size: 12px; text-align: center; padding: 8px;
+  }
+  .info { padding: 9px 11px 12px; display: flex; flex-direction: column; gap: 3px; flex: 1; border-top: 1px solid var(--linea); }
+  .marca { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--acento); font-weight: 600; }
+  .nombre {
+    font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .sku { margin-top: auto; padding-top: 4px; font-size: 11.5px; color: var(--tenue); }
+  .vacio { text-align: center; color: var(--tenue); padding: 40px 10px; }
+  .vacio button { margin-top: 12px; }
+  .mas { display: block; margin: 18px auto 0; }
+
+  .boton {
+    border: 0; border-radius: 12px; padding: 12px 18px; cursor: pointer; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;
+  }
+  .boton.claro { background: var(--papel); border: 1px solid var(--linea); color: var(--tinta); }
+  .boton.wsp { background: var(--wsp); color: #fff; }
+  .boton.wsp:active { filter: brightness(.92); }
+
+  /* Botón flotante de WhatsApp */
+  .flotante {
+    position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 6;
+    border-radius: 999px; box-shadow: 0 6px 20px rgba(0, 0, 0, .2); padding: 13px 18px;
+  }
+
+  /* Ficha del producto */
+  dialog {
+    border: 0; padding: 0; width: 100%; max-width: 560px; max-height: 92dvh; border-radius: 18px 18px 0 0;
+    margin: auto auto 0; background: var(--papel); color: var(--tinta); overflow: hidden;
+  }
+  @media (min-width: 640px) { dialog { border-radius: 18px; margin: auto; } }
+  dialog::backdrop { background: rgba(20, 15, 10, .5); }
+  dialog[open] { animation: subir .22s ease-out; display: flex; flex-direction: column; }
+  @keyframes subir { from { transform: translateY(30px); opacity: 0; } }
+  .ficha-cuerpo { overflow-y: auto; }
+  .ficha-foto { background: #fff; aspect-ratio: 4 / 3; position: relative; }
+  .ficha-foto img { width: 100%; height: 100%; object-fit: contain; padding: 10px; }
+  .cerrar {
+    position: absolute; top: 10px; right: 10px; width: 38px; height: 38px; border-radius: 50%; border: 0;
+    background: rgba(255, 253, 248, .92); box-shadow: var(--sombra); cursor: pointer; font-size: 22px; line-height: 1;
+  }
+  .ficha-texto { padding: 16px 18px 6px; }
+  .ficha-texto h2 { margin: 4px 0 8px; font-size: 19px; line-height: 1.3; }
+  .datos { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--tenue); margin-bottom: 12px; }
+  .caracteristicas { white-space: pre-line; font-size: 14.5px; margin: 0 0 8px; }
+  .aviso { font-size: 13px; color: var(--tenue); background: var(--fondo); border-radius: 10px; padding: 10px 12px; margin: 4px 0 6px; }
+  .ficha-pie { padding: 12px 18px calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid var(--linea); }
+  .ficha-pie .boton { width: 100%; font-size: 16px; padding: 14px; }
+
+  footer { text-align: center; color: var(--tenue); font-size: 12.5px; padding: 26px 16px 0; line-height: 1.6; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+
+<header class="cabecera">
+  <img src="logo.png" alt="El Bote del Pescador — Pesca · Camping" width="205" height="150">
+  <p>Catálogo de productos · <strong>Consultá precio y disponibilidad por WhatsApp</strong></p>
+</header>
+
+<div class="barra" id="barra">
+  <div class="buscador">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="Buscar: anzuelo, reel, linterna, marca…" autocomplete="off" enterkeyhint="search" aria-label="Buscar productos">
+    <button class="limpiar" id="limpiar" aria-label="Borrar búsqueda" hidden>×</button>
+  </div>
+  <nav class="chips" id="chips" aria-label="Categorías"></nav>
+</div>
+
+<main>
+  <p class="contador" id="contador">Cargando catálogo…</p>
+  <ul class="grilla" id="grilla"></ul>
+  <button class="boton claro mas" id="mas" hidden>Ver más productos</button>
+  <footer id="pie"></footer>
+</main>
+
+<a class="boton wsp flotante" id="flotante" target="_blank" rel="noopener" hidden>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3Z"/></svg>
+  Consultas
+</a>
+
+<dialog id="ficha" aria-labelledby="ficha-nombre">
+  <div class="ficha-cuerpo">
+    <div class="ficha-foto" id="ficha-foto"></div>
+    <div class="ficha-texto">
+      <div class="marca" id="ficha-marca"></div>
+      <h2 id="ficha-nombre"></h2>
+      <div class="datos" id="ficha-datos"></div>
+      <p class="caracteristicas" id="ficha-caract"></p>
+      <p class="aviso">Escribinos y te pasamos precio, disponibilidad y formas de pago.</p>
+    </div>
+  </div>
+  <div class="ficha-pie">
+    <a class="boton wsp" id="ficha-wsp" target="_blank" rel="noopener">Consultar por WhatsApp</a>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  const POR_TANDA = 40;
+  const $ = (id) => document.getElementById(id);
+  const estado = { datos: null, categoria: "", q: "", mostrados: POR_TANDA, lista: [] };
+
+  // Sin tildes ni mayúsculas, para que "cana" encuentre "Caña".
+  const normal = (t) => (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+  function el(tag, clase, texto) {
+    const e = document.createElement(tag);
+    if (clase) e.className = clase;
+    if (texto != null) e.textContent = texto;
+    return e;
+  }
+
+  function linkWhatsapp(texto) {
+    const n = estado.datos.negocio.whatsapp;
+    return n ? `https://wa.me/${n}?text=${encodeURIComponent(texto)}` : null;
+  }
+
+  function fotoO(p, alt) {
+    if (p.foto) {
+      const img = el("img");
+      img.src = p.foto; img.alt = alt || p.nombre; img.loading = "lazy"; img.decoding = "async";
+      return img;
+    }
+    const s = el("div", "sin-foto");
+    s.innerHTML = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg>';
+    s.append(el("span", "", "Imagen no disponible"));
+    return s;
+  }
+
+  function filtrar() {
+    const palabras = normal(estado.q).split(/\s+/).filter(Boolean);
+    estado.lista = estado.datos.productos.filter((p) =>
+      (!estado.categoria || p.categoria === estado.categoria) &&
+      palabras.every((w) => p._texto.includes(w)));
+  }
+
+  function dibujarChips() {
+    const cuenta = {};
+    estado.datos.productos.forEach((p) => { cuenta[p.categoria] = (cuenta[p.categoria] || 0) + 1; });
+    const chips = $("chips");
+    chips.replaceChildren();
+    [["", "Todo", estado.datos.productos.length], ...estado.datos.categorias.map((c) => [c, c, cuenta[c] || 0])]
+      .forEach(([valor, texto, n]) => {
+        const b = el("button", "chip", texto);
+        b.append(el("span", "", n));
+        b.setAttribute("aria-pressed", String(estado.categoria === valor));
+        b.onclick = () => {
+          estado.categoria = valor;
+          estado.mostrados = POR_TANDA;
+          dibujarChips(); actualizar();
+          b.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+        };
+        chips.append(b);
+      });
+  }
+
+  function tarjeta(p) {
+    const li = el("li");
+    const b = el("button", "tarjeta");
+    b.type = "button";
+    const f = el("div", "foto"); f.append(fotoO(p));
+    const info = el("div", "info");
+    if (p.marca) info.append(el("div", "marca", p.marca));
+    info.append(el("div", "nombre", p.nombre));
+    if (p.sku) info.append(el("div", "sku", "Cód. " + p.sku));
+    b.append(f, info);
+    b.onclick = () => abrirFicha(p);
+    li.append(b);
+    return li;
+  }
+
+  function actualizar() {
+    filtrar();
+    const n = estado.lista.length;
+    $("contador").textContent = n === 1 ? "1 producto" : `${n.toLocaleString("es-AR")} productos`;
+    const grilla = $("grilla");
+    grilla.replaceChildren(...estado.lista.slice(0, estado.mostrados).map(tarjeta));
+    $("mas").hidden = estado.mostrados >= n;
+    if (!n) {
+      const v = el("li", "vacio");
+      v.style.gridColumn = "1 / -1";
+      v.append(el("div", "", "No encontramos productos con esa búsqueda."),
+               el("div", "", "Igual escribinos: puede que lo tengamos o lo consigamos."));
+      const link = linkWhatsapp(`Hola, quiero consultar si tienen: ${estado.q || estado.categoria}`);
+      if (link) {
+        const a = el("a", "boton wsp", "Consultar por WhatsApp");
+        a.href = link; a.target = "_blank"; a.rel = "noopener";
+        v.append(a);
+      }
+      grilla.append(v);
+    }
+  }
+
+  function abrirFicha(p) {
+    $("ficha-foto").replaceChildren(fotoO(p));
+    const cerrar = el("button", "cerrar", "×");
+    cerrar.setAttribute("aria-label", "Cerrar");
+    cerrar.onclick = () => $("ficha").close();
+    $("ficha-foto").append(cerrar);
+    $("ficha-marca").textContent = p.marca;
+    $("ficha-nombre").textContent = p.nombre;
+    const d = $("ficha-datos");
+    d.replaceChildren(el("span", "", p.categoria));
+    if (p.sku) d.append(el("span", "", "Código: " + p.sku));
+    $("ficha-caract").textContent = p.caracteristicas;
+    $("ficha-caract").hidden = !p.caracteristicas;
+    const link = linkWhatsapp(`Hola, quiero consultar por ${p.nombre}${p.sku ? ` (SKU ${p.sku})` : ""}`);
+    $("ficha-wsp").hidden = !link;
+    if (link) $("ficha-wsp").href = link;
+    $("ficha").showModal();
+    // Enlace propio del producto (para compartirlo): ...#p=CODIGO
+    if (p.sku) history.replaceState(null, "", "#p=" + encodeURIComponent(p.sku));
+  }
+
+  function pie() {
+    const n = estado.datos.negocio, pie = $("pie");
+    pie.append(el("div", "", n.nombre));
+    if (n.direccion) pie.append(el("div", "", n.direccion));
+    if (n.whatsapp) {
+      const a = el("a", "", "WhatsApp " + n.whatsapp_visible);
+      a.href = linkWhatsapp("Hola, quería hacer una consulta"); a.target = "_blank"; a.rel = "noopener";
+      const d = el("div"); d.append(a); pie.append(d);
+    }
+    if (estado.datos.actualizado) {
+      const f = new Date(estado.datos.actualizado);
+      pie.append(el("div", "", "Actualizado el " + f.toLocaleDateString("es-AR") + " a las " +
+        f.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })));
+    }
+  }
+
+  // Eventos
+  let espera;
+  $("q").addEventListener("input", (e) => {
+    clearTimeout(espera);
+    $("limpiar").hidden = !e.target.value;
+    espera = setTimeout(() => { estado.q = e.target.value; estado.mostrados = POR_TANDA; actualizar(); }, 150);
+  });
+  $("q").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
+  $("limpiar").onclick = () => {
+    $("q").value = ""; $("limpiar").hidden = true; estado.q = ""; estado.mostrados = POR_TANDA; actualizar(); $("q").focus();
+  };
+  $("mas").onclick = () => { estado.mostrados += POR_TANDA; actualizar(); };
+  $("ficha").addEventListener("close", () => {
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+  });
+  $("ficha").addEventListener("click", (e) => { if (e.target === $("ficha")) $("ficha").close(); });
+  new IntersectionObserver(([e]) => { if (e.isIntersecting && !$("mas").hidden) $("mas").click(); }, { rootMargin: "400px" })
+    .observe($("mas"));
+  const barra = $("barra");
+  addEventListener("scroll", () => barra.classList.toggle("pegada", barra.getBoundingClientRect().top <= 0 && scrollY > 60), { passive: true });
+
+  fetch("datos.json", { cache: "no-cache" })
+    .then((r) => r.json())
+    .then((datos) => {
+      datos.productos.forEach((p) => { p._texto = normal([p.nombre, p.marca, p.sku, p.categoria, p.caracteristicas].join(" ")); });
+      estado.datos = datos;
+      const fl = $("flotante"), link = linkWhatsapp("Hola, quería hacer una consulta");
+      if (link) { fl.href = link; fl.hidden = false; }
+      dibujarChips(); pie(); actualizar();
+      const m = location.hash.match(/^#p=(.+)$/);
+      const elegido = m && datos.productos.find((p) => p.sku === decodeURIComponent(m[1]));
+      if (elegido) abrirFicha(elegido);
+    })
+    .catch(() => { $("contador").textContent = "No se pudo cargar el catálogo. Probá de nuevo en un rato."; });
+})();
+</script>
+</body>
+</html>
