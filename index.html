@@ -137,6 +137,23 @@
     border-radius: 999px; padding: 3px 8px 3px 7px; pointer-events: none;
   }
   .cant-fotos svg { width: 13px; height: 13px; }
+  /* Promociones (18/11/2026): sección arriba, etiqueta y collage con las fotos de las piezas. */
+  .seccion-titulo {
+    font-family: var(--titulos); font-weight: 400; font-size: 21px; margin: 14px 2px 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .seccion-titulo::before { content: ""; width: 6px; height: 22px; border-radius: 3px; background: linear-gradient(var(--ambar), var(--naranja)); }
+  .seccion-promos { margin-bottom: 18px; }
+  .seccion-promos .tarjeta { border-color: var(--ambar); }
+  .etiqueta-promo {
+    position: absolute; left: 6px; top: 6px; z-index: 1; background: var(--naranja); color: #fff;
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; border-radius: 999px; padding: 3px 9px; pointer-events: none;
+  }
+  .collage { width: 100%; height: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 4px; }
+  .collage.n2 { grid-template-rows: 1fr; align-content: center; }
+  .collage.n2 img { aspect-ratio: 1 / 2; }
+  .collage.n3 img:first-child { grid-row: span 2; }
+  .collage img { width: 100%; height: 100%; min-height: 0; object-fit: contain; padding: 4px !important; }
   .foto img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
   .sin-foto {
     width: 100%; height: 100%; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center;
@@ -257,6 +274,11 @@
 </div>
 
 <main>
+  <section class="seccion-promos" id="promos" hidden>
+    <h2 class="seccion-titulo">Promociones</h2>
+    <ul class="grilla" id="grilla-promos"></ul>
+    <h2 class="seccion-titulo">Todos los productos</h2>
+  </section>
   <p class="contador" id="contador">Cargando catálogo…</p>
   <ul class="grilla" id="grilla"></ul>
   <button class="boton claro mas" id="mas" hidden>Ver más productos</button>
@@ -354,8 +376,20 @@
     const li = el("li");
     const b = el("button", "tarjeta");
     b.type = "button";
-    const f = el("div", "foto"); f.append(fotoO(p));
-    if (p.fotos && p.fotos.length) {
+    const f = el("div", "foto");
+    const todas = p.foto ? [p.foto, ...(p.fotos || [])] : [];
+    if (p.promo && todas.length > 1) {
+      // Collage con las fotos de lo que trae el combo (hasta 4).
+      const c = el("div", "collage n" + Math.min(todas.length, 4));
+      todas.slice(0, 4).forEach((src) => {
+        const img = el("img"); img.src = src; img.alt = ""; img.loading = "lazy"; img.decoding = "async";
+        c.append(img);
+      });
+      c.setAttribute("role", "img"); c.setAttribute("aria-label", p.nombre);
+      f.append(c);
+    } else f.append(fotoO(p));
+    if (p.promo) f.append(el("span", "etiqueta-promo", "PROMO"));
+    if (p.fotos && p.fotos.length && !p.promo) {
       const c = el("span", "cant-fotos");
       c.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
       c.append(String(p.fotos.length + 1));
@@ -374,6 +408,14 @@
 
   function actualizar() {
     filtrar();
+    // En la portada (sin búsqueda ni categoría) las promos van en su sección de arriba.
+    const portada = !estado.categoria && !estado.q;
+    const promos = estado.datos.productos.filter((p) => p.promo);
+    $("promos").hidden = !(portada && promos.length);
+    if (portada && promos.length) {
+      $("grilla-promos").replaceChildren(...promos.map(tarjeta));
+      estado.lista = estado.lista.filter((p) => !p.promo);
+    }
     const n = estado.lista.length;
     $("contador").textContent = n === 1 ? "1 producto" : `${n.toLocaleString("es-AR")} productos`;
     const grilla = $("grilla");
@@ -454,7 +496,7 @@
     if (p.sku) d.append(el("span", "", "Código: " + p.sku));
     $("ficha-caract").textContent = p.caracteristicas;
     $("ficha-caract").hidden = !p.caracteristicas;
-    const link = linkWhatsapp(`Hola, quiero consultar por ${p.nombre}${p.sku ? ` (SKU ${p.sku})` : ""}`);
+    const link = linkWhatsapp(`Hola, quiero consultar por ${p.promo ? "la promo " : ""}${p.nombre}${p.sku ? ` (SKU ${p.sku})` : ""}`);
     $("ficha-wsp").hidden = !link;
     if (link) $("ficha-wsp").href = link;
     $("ficha").showModal();
