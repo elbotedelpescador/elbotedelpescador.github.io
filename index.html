@@ -323,6 +323,42 @@
     return e;
   }
 
+  // Estadísticas (24/11/2026): cuenta visitas, productos vistos, consultas por
+  // WhatsApp y búsquedas. Sin cookies ni datos de la persona.
+  function contar(t, d, n) {
+    const url = estado.datos && estado.datos.estadisticas;
+    if (!url || !navigator.sendBeacon) return;
+    try {
+      const ev = { t, d: d || "" };
+      if (n != null) ev.n = n;
+      if (t === "visita") ev.r = origenVisita();
+      navigator.sendBeacon(url + "/e", new Blob([JSON.stringify(ev)], { type: "text/plain" }));
+    } catch (e) { /* nunca romper el catálogo por esto */ }
+  }
+  function origenVisita() {
+    const p = new URLSearchParams(location.search);
+    if (p.get("utm_source")) return p.get("utm_source");
+    if (p.get("fbclid")) return "facebook/instagram";
+    let h = "";
+    try { h = document.referrer ? new URL(document.referrer).hostname : ""; } catch (e) {}
+    if (!h || h === location.hostname) return "directo/whatsapp";
+    for (const [k, v] of [["instagram", "instagram"], ["facebook", "facebook"], ["fb.", "facebook"], ["google", "google"],
+                          ["whatsapp", "whatsapp"], ["wa.me", "whatsapp"], ["tiktok", "tiktok"], ["bing", "bing"]]) {
+      if (h.includes(k)) return v;
+    }
+    return h;
+  }
+  let ultimaBusqueda = "", esperaBusqueda;
+  function contarBusqueda() {
+    clearTimeout(esperaBusqueda);
+    esperaBusqueda = setTimeout(() => {
+      const q = normal(estado.q).trim().replace(/\s+/g, " ");
+      if (q.length < 3 || q === ultimaBusqueda) return;
+      ultimaBusqueda = q;
+      contar("busqueda", q, estado.lista.length);
+    }, 1500);
+  }
+
   function linkWhatsapp(texto) {
     const n = estado.datos.negocio.whatsapp;
     return n ? `https://wa.me/${n}?text=${encodeURIComponent(texto)}` : null;
@@ -499,7 +535,9 @@
     const link = linkWhatsapp(`Hola, quiero consultar por ${p.promo ? "la promo " : ""}${p.nombre}${p.sku ? ` (SKU ${p.sku})` : ""}`);
     $("ficha-wsp").hidden = !link;
     if (link) $("ficha-wsp").href = link;
+    $("ficha-wsp").dataset.sku = p.sku || p.nombre;
     $("ficha").showModal();
+    contar("ver", p.sku || p.nombre);
     cerrar.focus({ preventScroll: true });  // como con una sola foto (si no, el foco cae en la galería)
     // Enlace propio del producto (para compartirlo): ...#p=CODIGO
     if (p.sku) history.replaceState(null, "", "#p=" + encodeURIComponent(p.sku));
@@ -540,12 +578,14 @@
   $("q").addEventListener("input", (e) => {
     clearTimeout(espera);
     $("limpiar").hidden = !e.target.value;
-    espera = setTimeout(() => { estado.q = e.target.value; estado.mostrados = POR_TANDA; actualizar(); }, 150);
+    espera = setTimeout(() => { estado.q = e.target.value; estado.mostrados = POR_TANDA; actualizar(); contarBusqueda(); }, 150);
   });
   $("q").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
   $("limpiar").onclick = () => {
     $("q").value = ""; $("limpiar").hidden = true; estado.q = ""; estado.mostrados = POR_TANDA; actualizar(); $("q").focus();
   };
+  $("ficha-wsp").addEventListener("click", () => contar("wsp", $("ficha-wsp").dataset.sku));
+  $("pie").addEventListener("click", (e) => { if (e.target.closest("a[href*='wa.me']")) contar("wsp", "(general)"); });
   $("mas").onclick = () => { estado.mostrados += POR_TANDA; actualizar(); };
   $("ficha").addEventListener("close", () => {
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
@@ -564,6 +604,8 @@
       const fl = $("flotante"), link = linkWhatsapp("Hola, quería hacer una consulta");
       if (link) { fl.href = link; fl.hidden = false; }
       dibujarChips(); pie(); actualizar();
+      try { if (!sessionStorage.getItem("visita")) { sessionStorage.setItem("visita", "1"); contar("visita"); } } catch (e) { contar("visita"); }
+      fl.addEventListener("click", () => contar("wsp", "(general)"));
       const m = location.hash.match(/^#p=(.+)$/);
       const elegido = m && datos.productos.find((p) => p.sku === decodeURIComponent(m[1]));
       if (elegido) abrirFicha(elegido);
