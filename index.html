@@ -277,6 +277,7 @@
   <section class="seccion-promos" id="promos" hidden>
     <h2 class="seccion-titulo">Promociones</h2>
     <ul class="grilla" id="grilla-promos"></ul>
+    <button class="boton claro mas" id="todas-promos" hidden>Ver todas las promociones</button>
     <h2 class="seccion-titulo">Todos los productos</h2>
   </section>
   <p class="contador" id="contador">Cargando catálogo…</p>
@@ -384,6 +385,18 @@
       palabras.every((w) => p._texto.includes(w)));
   }
 
+  const PROMOS_PORTADA = 6;
+  function elegirCategoria(valor, texto) {
+    estado.categoria = valor;
+    estado.mostrados = POR_TANDA;
+    $("cat-actual").textContent = texto;
+    cerrarCategorias();
+    dibujarChips(); actualizar();
+    // Volver al principio de la lista de productos.
+    const arriba = $("contador").getBoundingClientRect().top + scrollY - $("barra").offsetHeight - 8;
+    if (scrollY > arriba) scrollTo({ top: arriba, behavior: "smooth" });
+  }
+
   function dibujarChips() {
     const cuenta = {};
     estado.datos.productos.forEach((p) => { cuenta[p.categoria] = (cuenta[p.categoria] || 0) + 1; });
@@ -394,16 +407,7 @@
         const b = el("button", "chip", texto);
         b.append(el("span", "", n));
         b.setAttribute("aria-pressed", String(estado.categoria === valor));
-        b.onclick = () => {
-          estado.categoria = valor;
-          estado.mostrados = POR_TANDA;
-          $("cat-actual").textContent = texto;
-          cerrarCategorias();
-          dibujarChips(); actualizar();
-          // Volver al principio de la lista de productos.
-          const arriba = $("contador").getBoundingClientRect().top + scrollY - $("barra").offsetHeight - 8;
-          if (scrollY > arriba) scrollTo({ top: arriba, behavior: "smooth" });
-        };
+        b.onclick = () => elegirCategoria(valor, texto);
         chips.append(b);
       });
   }
@@ -449,7 +453,11 @@
     const promos = estado.datos.productos.filter((p) => p.promo);
     $("promos").hidden = !(portada && promos.length);
     if (portada && promos.length) {
-      $("grilla-promos").replaceChildren(...promos.map(tarjeta));
+      // En la portada sólo las primeras 6 (24/11/2026): así se llega rápido a
+      // los productos; el botón lleva a la categoría Promociones con todas.
+      $("grilla-promos").replaceChildren(...promos.slice(0, PROMOS_PORTADA).map(tarjeta));
+      $("todas-promos").hidden = promos.length <= PROMOS_PORTADA;
+      $("todas-promos").textContent = `Ver las ${promos.length} promociones`;
       estado.lista = estado.lista.filter((p) => !p.promo);
     }
     const n = estado.lista.length;
@@ -587,6 +595,7 @@
   $("ficha-wsp").addEventListener("click", () => contar("wsp", $("ficha-wsp").dataset.sku));
   $("pie").addEventListener("click", (e) => { if (e.target.closest("a[href*='wa.me']")) contar("wsp", "(general)"); });
   $("mas").onclick = () => { estado.mostrados += POR_TANDA; actualizar(); };
+  $("todas-promos").onclick = () => elegirCategoria("Promociones", "Promociones");
   $("ficha").addEventListener("close", () => {
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
   });
