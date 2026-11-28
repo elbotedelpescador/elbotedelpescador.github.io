@@ -3,8 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>El Bote del Pescador · Catálogo</title>
-<meta name="description" content="Catálogo de pesca y camping de El Bote del Pescador. Consultá precio y disponibilidad por WhatsApp.">
+<title>El Bote del Pescador · Pesca y camping en Tristán Suárez</title>
+<meta name="description" content="Casa de pesca y camping en Tristán Suárez (Ezeiza). Cañas, reels, señuelos, anzuelos, líneas, carpas, linternas y más. Consultá precio y disponibilidad por WhatsApp.">
+<link rel="canonical" href="https://elbotedelpescador.github.io/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="El Bote del Pescador">
+<meta property="og:title" content="El Bote del Pescador · Pesca y camping en Tristán Suárez">
+<meta property="og:description" content="Casa de pesca y camping en Tristán Suárez (Ezeiza). Cañas, reels, señuelos, anzuelos, líneas, carpas, linternas y más. Consultá precio y disponibilidad por WhatsApp.">
+<meta property="og:url" content="https://elbotedelpescador.github.io/">
+<meta property="og:image" content="https://elbotedelpescador.github.io/logo.png">
+<meta property="og:locale" content="es_AR">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SportingGoodsStore", "name": "El Bote del Pescador", "description": "Casa de pesca y camping en Tristán Suárez (Ezeiza). Cañas, reels, señuelos, anzuelos, líneas, carpas, linternas y más. Consultá precio y disponibilidad por WhatsApp.", "url": "https://elbotedelpescador.github.io/", "logo": "https://elbotedelpescador.github.io/logo.png", "image": "https://elbotedelpescador.github.io/logo.png", "address": {"@type": "PostalAddress", "streetAddress": "Pte. Néstor Kirchner 7106", "addressLocality": "Tristán Suárez", "addressRegion": "Buenos Aires", "addressCountry": "AR"}, "openingHoursSpecification": [{"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], "opens": "09:00", "closes": "13:00"}, {"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"], "opens": "17:00", "closes": "20:00"}], "telephone": "+5491130307636"}</script>
 <meta name="theme-color" content="#ff8f33">
 <link rel="icon" href="logo.png">
 <!--
@@ -53,7 +62,7 @@
     background: var(--fondo); padding: 5px; box-shadow: 0 8px 24px rgba(120, 50, 10, .25);
   }
   .logo img { width: 100%; height: 100%; }
-  .bajada { margin: 12px 16px 0; font-size: 14px; color: var(--tenue); }
+  .bajada { margin: 12px 16px 0; font-size: 14px; font-weight: 400; line-height: 1.4; color: var(--tenue); }
   .bajada strong { display: block; font-family: var(--titulos); font-weight: 400; font-size: 19px; color: var(--tinta); margin-bottom: 2px; }
 
   /* Buscador y categorías (quedan fijos arriba al bajar) */
@@ -257,7 +266,7 @@
     <svg viewBox="0 0 1200 46" preserveAspectRatio="none"><path d="M0 22 C 150 4 300 40 450 22 S 750 4 900 22 S 1100 40 1200 20 V46 H0Z" fill="#fdf7ef"/><path d="M0 30 C 200 18 350 42 600 30 S 1000 18 1200 32" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width="2"/></svg>
   </div>
   <div class="logo"><img src="logo.png" alt="El Bote del Pescador — Pesca y Camping" width="300" height="300"></div>
-  <p class="bajada"><strong>Catálogo de productos</strong>Consultá precio y disponibilidad por WhatsApp</p>
+  <h1 class="bajada"><strong>Catálogo de pesca y camping</strong>Tristán Suárez · Consultá precio y disponibilidad por WhatsApp</h1>
 </header>
 
 <div class="barra" id="barra">
@@ -556,6 +565,7 @@
     const n = estado.datos.negocio, pie = $("pie");
     pie.append(el("div", "nombre-local", "El Bote del Pescador"));
     if (n.direccion) pie.append(el("div", "", n.direccion));
+    if (n.horario) pie.append(el("div", "", n.horario));
     if (n.whatsapp) {
       const a = el("a", "", "WhatsApp " + n.whatsapp_visible);
       a.href = linkWhatsapp("Hola, quería hacer una consulta"); a.target = "_blank"; a.rel = "noopener";
